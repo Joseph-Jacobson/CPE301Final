@@ -1,6 +1,5 @@
 #include <LiquidCrystal.h>
 
-
 #include <DHT.h>
 #include <DHT_U.h>
 #include <Adafruit_LiquidCrystal.h>
@@ -26,8 +25,7 @@ const int BUTTON_PIN_3 = 3; //reset
 int motorPin = 13;
 const int stepsPerRevolution = 2048;  // change this to fit the number of steps per revolution
 const int rolePerMinute = 17;         // Adjustable range of 28BYJ-48 stepper is 0~17 rpm
-const int rs = 23, en = 25, d4 = 27, d5 = 29, and  d6 = 31, d7 = 33;
-// // //LiquidCrystal lcd(23, 25, 27, 29, 31, 33);
+const int rs = A3, en = A5, d4 = A9, d5 = A10, d6 = A11, d7 = A12;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // initialize the stepper library on pins 8 through 11:
@@ -61,8 +59,22 @@ void setup() {
 	digitalWrite(sensorPower, LOW);
   Serial.begin(9600);
 
-  lcd.begin(16,2);
-  lcd.print("dicks");
+  pinMode(A14,OUTPUT);
+  pinMode(A13,OUTPUT);
+  pinMode(A4,OUTPUT);
+  pinMode(A0,OUTPUT);
+  pinMode(A2,OUTPUT);
+  pinMode(A1,OUTPUT);
+  digitalWrite(A14,LOW); 
+  digitalWrite(A13,HIGH); 
+  digitalWrite(A4,LOW); 
+  digitalWrite(A0,LOW);
+  digitalWrite(A2,LOW);
+  digitalWrite(A1,HIGH);
+  lcd.begin(16, 2);
+ // Print a message to the LCD.
+  lcd.print("joe mama");
+
 }
 
 
@@ -81,26 +93,27 @@ void loop() {
     myStepper.step(-stepsPerRevolution);
     delay(500);
     Serial.println("Closed.");
-  // Turn on corresponding LED for each button that is pressed
-  // if (button1State == LOW) {
-  //   digitalWrite(LED_PIN_1, HIGH);
-  // } else {
-  //   digitalWrite(LED_PIN_1, LOW);
-  // }
+  
+  //Turn on corresponding LED for each button that is pressed
+  if (button1State == LOW) {
+     digitalWrite(LED_PIN_1, HIGH);
+  } else {
+    digitalWrite(LED_PIN_1, LOW);
+  }
 
-  // if (button2State == LOW) {
-  //   digitalWrite(LED_PIN_2, HIGH);
-  // } else {
-  //   digitalWrite(LED_PIN_2, LOW);
-  // }
+  if (button2State == LOW) {
+    digitalWrite(LED_PIN_2, HIGH);
+  } else {
+    digitalWrite(LED_PIN_2, LOW);
+  }
 
-  // if (button3State == LOW) {
-  //   digitalWrite(LED_PIN_3, HIGH);
-  //   digitalWrite(LED_PIN_4, HIGH);
-  // } else {
-  //   digitalWrite(LED_PIN_3, LOW);
-  //   digitalWrite(LED_PIN_4, LOW);
-  // }
+  if (button3State == LOW) {
+    digitalWrite(LED_PIN_3, HIGH);
+    digitalWrite(LED_PIN_4, HIGH);
+  } else {
+    digitalWrite(LED_PIN_3, LOW);
+    digitalWrite(LED_PIN_4, LOW);
+  }
 
     if (Serial.available())
   {
@@ -139,8 +152,12 @@ float humi  = dht.readHumidity();
     Serial.println("°F");
   }
 
-  lcd.setCursor(0,1);
-  lcd.print("balls");
+  // set the cursor to column 0, line 1
+  // (note: line 1 is the second row, since counting begins with 0):
+  lcd.setCursor(0, 1);
+  // print the number of seconds since reset:
+  lcd.print(millis() / 1000);
+
 
 /////////////////////////
 if (tempF < threshold){
@@ -169,63 +186,59 @@ int readSensor() {
 }
 
 
-//Stepper Motor:
+// Stepper Motor:
 // 24, 26, 28, 32
-//DC Motor:
+// DC Motor:
 // 13
-//Button:
+// Button:
 // 3,4,5
-//LEDS:
+// LEDS:
 // 6yellow,7blue,8green,9red
-//TEMP:
+// TEMP:
 // 10
-//Water Sensor:
-//11
+// Water Sensor:
+// 11
 
 
 
-/*
 
-if (temp < threshold){
-  display temp and hum
-  fan off
-  green led on
-}
+// if (temp < threshold){
+//   display temp and hum
+//   fan off
+//   green led on
+// }
 
-else if (temp > threshold){
- display temp and hum
- fan motor on
- blue led on
-}
-
-
-else if (water < thres){
-  red light on
-  error message "water level is too low"
-}
-
-else if (water <= thres){
-  red light on
-  error message "water level is too low"
-}
-
-else if (reset == true){
-  display temp and hum
-  fan off
-  green led on
-}
-
-else if (stop == true){
- Yellow light on
-}
-else if (start == true){
-  display temp and hum
-  fan off
-  green led on
-}
-else{
-
-}
+// else if (temp > threshold){
+//  display temp and hum
+//  fan motor on
+//  blue led on
+// }
 
 
-*/
+// else if (water < thres){
+//   red light on
+//   error message "water level is too low"
+// }
+
+// else if (water <= thres){
+//   red light on
+//   error message "water level is too low"
+// }
+
+// else if (reset == true){
+//   display temp and hum
+//   fan off
+//   green led on
+// }
+
+// else if (stop == true){
+//  Yellow light on
+// }
+// else if (start == true){
+//   display temp and hum
+//   fan off
+//   green led on
+// }
+// else{
+
+// }
