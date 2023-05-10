@@ -2,8 +2,6 @@
 #include <DHT_U.h>
 
 #include <LiquidCrystal.h>
-
-
 #include <Adafruit_LiquidCrystal.h>
 
 #include <Stepper.h>
@@ -11,32 +9,24 @@
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
-
-#define sensorPower 2
-#define sensorPin 11
+// initializing all of the threshold and monitor variables
 int t = 1;
 const float waterthreshold = 100;
 const float tempthreshold = 25;
 int state = 1;
-// const int LED_PIN_1 = 9;
-// const int LED_PIN_2 = 8; //GREEN
-// const int LED_PIN_3 = 7;
-// const int LED_PIN_4 = 6;
 int level = 0;
-// Define button pins
-//const int BUTTON_PIN_1 = 5; //start
-//const int BUTTON_PIN_2 = 4; //stop
-//const int BUTTON_PIN_3 = 3; //reset
 int motorPin = 13;
 const int stepsPerRevolution = 2048;  // change this to fit the number of steps per revolution
 const int rolePerMinute = 17;         // Adjustable range of 28BYJ-48 stepper is 0~17 rpm
 const int rs = A3, en = A5, d4 = A9, d5 = A10, d6 = A11, d7 = A12;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);      // initialize the lcd
 
 // initialize the stepper library on pins 8 through 11:
-Stepper myStepper(stepsPerRevolution, 24, 30, 26, 32);
+Stepper myStepper(stepsPerRevolution, 24, 30, 26, 32);     //initialize the stepper
 
-//LIGHTS
+
+// Register declarations
+     //LIGHTS
 volatile unsigned char* port_h= (unsigned char*) 0x102; 
 volatile unsigned char* ddr_h = (unsigned char*) 0x101;
 volatile unsigned char* pin_h = (unsigned char*) 0x100;
@@ -45,7 +35,7 @@ volatile unsigned char* port_c = (unsigned char*) 0x28;
 volatile unsigned char* ddr_c = (unsigned char*) 0x27;
 volatile unsigned char* pin_c = (unsigned char*) 0x26;
 
-///BUTTONS
+     //BUTTONS
 volatile unsigned char* port_e= (unsigned char*) 0x2e; 
 volatile unsigned char* ddr_e = (unsigned char*) 0x2d;
 volatile unsigned char* pin_e = (unsigned char*) 0x2c;
@@ -55,12 +45,12 @@ volatile unsigned char* port_g= (unsigned char*) 0x34;
 volatile unsigned char* ddr_g = (unsigned char*) 0x33;
 volatile unsigned char* pin_g = (unsigned char*) 0x32;
 
-//motor
+     //VENT
 volatile unsigned char* port_b= (unsigned char*) 0x25; 
 volatile unsigned char* ddr_b = (unsigned char*) 0x24;
 volatile unsigned char* pin_b = (unsigned char*) 0x23;
 
-//LCD
+     //LCD
 volatile unsigned char* port_a = (unsigned char*) 0x22; 
 volatile unsigned char* ddr_a = (unsigned char*) 0x21;
 volatile unsigned char* pin_a = (unsigned char*) 0x20;
@@ -73,15 +63,11 @@ volatile unsigned char* port_k = (unsigned char*) 0x108;
 volatile unsigned char* ddr_k = (unsigned char*) 0x107;
 volatile unsigned char* pin_k = (unsigned char*) 0x106;
 
-//ABC 123
+     //ABC 123
 volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
 volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
-
-// int buttonState1 = 0;
-// int buttonState2 = 0;
-// int buttonState3 = 0;
 
 void setup() {
 
@@ -89,7 +75,7 @@ adc_init();
 *ddr_b &= ~(0x01<<6);
 *port_b |= (0x01<<6);
 
-
+// Register implementations
 *ddr_h |= (0x01<<3);
 *ddr_h |= (0x01<<4);
 *ddr_h |= (0x01<<5);
@@ -125,81 +111,41 @@ adc_init();
 *port_f &= ~(0x01<<2);
 *port_f |= (0x01<<1);
 
-
-  // Set LED pins as outputs
-  //pinMode(LED_PIN_1, OUTPUT);
-  // pinMode(LED_PIN_2, OUTPUT);
-  // pinMode(LED_PIN_3, OUTPUT);
-  // pinMode(LED_PIN_4, OUTPUT);
-
-  // // Set button pins as inputs
-  // pinMode(BUTTON_PIN_1, INPUT_PULLUP);
-  // pinMode(BUTTON_PIN_2, INPUT_PULLUP);
-  // pinMode(BUTTON_PIN_3, INPUT_PULLUP);
-
-  //   pinMode(motorPin, OUTPUT);
   Serial.begin(9600);
 
   myStepper.setSpeed(rolePerMinute);
   dht.begin(); // initialize the sensor
-  // initialize the serial port:
-	
-	// Set to LOW so no power flows through the sensor
-	// digitalWrite(sensorPower, LOW);
-
-  // pinMode(A14,OUTPUT);
-  // pinMode(A13,OUTPUT);
-  // pinMode(A4,OUTPUT);
-  // pinMode(A0,OUTPUT);
-  // pinMode(A2,OUTPUT);
-  // pinMode(A1,OUTPUT);
-  // digitalWrite(A14,LOW); 
-  // digitalWrite(A13,HIGH); 
-  // digitalWrite(A4,LOW); 
-  // digitalWrite(A0,LOW);
-  // digitalWrite(A2,LOW);
-  // digitalWrite(A1,HIGH);
   lcd.begin(16, 2);
- // Print a message to the LCD.
-  //lcd.print("joe mama");
-  
-  // pinMode(BUTTON_PIN_1, INPUT);
-  // pinMode(BUTTON_PIN_2, INPUT);
-  // pinMode(BUTTON_PIN_3, INPUT);
-  
 }
 
 
 void loop() {
 
+// declares variables based on sensors
 float temp = dht.readTemperature();
 float humi = dht.readHumidity();
 level = adc_read(11);
 
-
-
+//measures variables to cause a state switch
 if(*pin_e & (0x01<<3)){
  state=2;
 }
-
 if(*pin_e & (0x01<<5)){
 state=1;
 }
 
-*port_e |= (0x01<<4);
+*port_e |= (0x01<<4); // sensor
 
-
-
-
+// disabled state
 if(state == 1){
   *port_b &= ~(0x01<<7);
  *port_h |= (0x01<<3);
    *port_h &= ~(0x01<<6);
   *port_h &= ~(0x01<<5);
   *port_h &= ~(0x01<<4);
-
 }
 
+// idle state
 if(state == 2){
   *port_b &= ~(0x01<<7);
    *port_h |= (0x01<<5);
@@ -210,14 +156,15 @@ if(state == 2){
   *port_h &= ~(0x01<<6);
   *port_h &= ~(0x01<<4);
   *port_h &= ~(0x01<<3);
-  if(level < waterthreshold){
+  if(level < waterthreshold){ // state switch
  state = 4;
 }
-if(temp > tempthreshold){
+if(temp > tempthreshold){ // state switch
  state = 3;
 }
 }
 
+// running state
 if(state == 3){
   *port_b |= (0x01<<7);
   *port_h |= (0x01<<4);
@@ -239,6 +186,7 @@ if(level <= waterthreshold){
 }
 }
 
+// low water state
 if (state == 4){
   *port_b &= ~(0x01<<7);
   lcd.println("Water level is too low");
@@ -250,258 +198,17 @@ if (state == 4){
 
   if(*pin_g & (0x01<<5)){
 state=2;
-}
-}
-Serial.print("Level:");
-Serial.println(level);
-Serial.print("Temp:");
-Serial.println(temp);
-Serial.print("Humi:");
-Serial.println(humi);
-Serial.println(state);
-//   *port_h &= ~(0x01<<6);
-//   *port_h &= ~(0x01<<5);
-//   *port_h &= ~(0x01<<4);
-//   *port_h &= ~(0x01<<3);
-//   *port_b &= ~(0x01<<7);
-
- //int readData = DHT.read11(outPin);
-
-// Serial.println(temp);
-// Serial.println(humi);
-  // *port_e &= ~(0x01<<3);
-
-
-if(*pin_b & (0x01<<6)){
-  myStepper.step(stepsPerRevolution*t);
-  t *= -1;
+  }
 }
 
-delay(1000);
-lcd.clear();
+  if(*pin_b & (0x01<<6)){
+    myStepper.step(stepsPerRevolution*t);
+    t *= -1;
+  }
 
-// if(*pin_e & (0x01<<3)){ 
-//   *port_h |= (0x01<<6);
-//   *port_h |= (0x01<<5);
-// }else if(*pin_g & (0x01<<5)){
-//   *port_h |= (0x01<<4);
-//   *port_b |= (0x01<<7);
-// }else if(*pin_e & (0x01<<5)){
-//   *port_h |= (0x01<<3);
-// }else{
-//   *port_h &= ~(0x01<<6);
-//   *port_h &= ~(0x01<<5);
-//   *port_h &= ~(0x01<<4);
-//   *port_h &= ~(0x01<<3);
-//   *port_b &= ~(0x01<<7);
-// }
-
-
-  // // Read button states
-  // if(state==0)
-  // {
-  //   *port_e |= (0x01<<3);
-  //   if(*pin_g & (0x01 <<5))
-  //   {
-  //     state=1;
-  //     delay(500);
-  //   }
-  // }
-  // else if(state==1)
-  // {
-  //   *port_h |= (0x01<<5);
-  // }
-  // else if(state==2)
-  // {
-  //   *port_h |= (0x01<<4);
-  // }
-  // else if(state==4)
-  // {
-  //   *port_h |= (0x01<<5);
-  //   lcd.clear();
-  //   lcd.print("Water lvl Low!");
-  //   if(*pin_g & (0x01 <<5))
-  //   {
-  //     state=0;
-  //     delay(500);
-  //   }
-  //   if(*pin_e & (0x01 <<5))
-  //   {
-  //     state=1;
-  //     delay(500);
-  //   }    
-  // }
-  // if(state==1 || state==2)
-  // {
-  //   //value = adc_read(11);
-  //   lcd.clear();
-	//   int level = readSensor();
-	
-	//   lcd.print("Water level: ");
-	//   lcd.println(level);
-
-  // float humi  = dht.readHumidity();
-  // // read temperature as Celsius
-  // float tempC = dht.readTemperature();
-  // // read temperature as Fahrenheit
-  // float tempF = dht.readTemperature(true);
-
-  // // check if any reads failed
-  // if (isnan(humi) || isnan(tempC) || isnan(tempF)) {
-  //   lcd.println("Failed to read from DHT sensor!");
-  // } else {
-  //   lcd.print("Humidity: ");
-  //   lcd.print(humi);
-  //   lcd.print("%");
-
-  //   lcd.print("  |  "); 
-  //   lcd.setCursor(0, 1);
-  //   lcd.print("Temperature: ");
-  //   lcd.print(tempC);
-  //   lcd.print("°C ~ ");
-  //   lcd.print(tempF);
-  //   lcd.println("°F");
-  // }
-  //     delay(250);
-
-  //   if(humi>15.00)
-  //   {
-  //     state=2;
-  //   }
-  //   else
-  //   {
-  //     state=1;
-  //   }
-  //   if(*pin_g & (0x01 <<5))
-  //   {
-  //     state=0;
-  //     delay(500);
-  //   }
-
-  //   // if(value>120)
-  //   // {
-  //   //   state=4;
-  //   //   delay(500);
-  //   // }
-
-  //   if(*pin_e & (0x01 <<4))
-  //   {
-  //     myStepper.step(stepsPerRevolution*t);
-  //     t*=-1;
-  //     delay(500);
-  //   }
-
-  // }
-
-
-  // pinMode(9, OUTPUT);
-  // digitalWrite(9, HIGH);
-  // pinMode(8, OUTPUT);
-  // digitalWrite(8, HIGH);
-  // pinMode(7, OUTPUT);
-  // digitalWrite(7, HIGH);
-  // pinMode(6, OUTPUT);
-  // digitalWrite(6, HIGH);
-
-// buttonState1 = digitalRead(BUTTON_PIN_1);
-// buttonState2 = digitalRead(BUTTON_PIN_2);
-// buttonState3 = digitalRead(BUTTON_PIN_3);
-
-// *port_h |= (0x01<<6);
-// *port_h |= (0x01<<5);
-// *port_h |= (0x01<<4);
-// *port_h |= (0x01<<3);
-
-
-
-
-    // Serial.println("Opening..");
-    // myStepper.step(stepsPerRevolution);
-    // delay(500);
-    // Serial.println("Open.");
-    // Serial.println("Closing..");
-    // myStepper.step(-stepsPerRevolution);
-    // delay(500);
-    // Serial.println("Closed.");
-  
-  //Turn on corresponding LED for each button that is pressed
-  // if (button1State == LOW) {
-  //    digitalWrite(LED_PIN_1, HIGH);
-  // } else {
-  //   digitalWrite(LED_PIN_1, LOW);
-  // }
-
-  // if (button2State == LOW) {
-  //   digitalWrite(LED_PIN_2, HIGH);
-  // } else {
-  //   digitalWrite(LED_PIN_2, LOW);
-  // }
-
-  // if (button3State == LOW) {
-  //   digitalWrite(LED_PIN_3, HIGH);
-  //   digitalWrite(LED_PIN_4, HIGH);
-  // } else {
-  //   digitalWrite(LED_PIN_3, LOW);
-  //   digitalWrite(LED_PIN_4, LOW);
-  // }
-
-  //   if (Serial.available())
-  // {
-  //   int speed = Serial.parseInt();
-  //   if (speed >= 0 && speed <= 255)
-  //   {
-  //     analogWrite(motorPin, speed);
-  //   }
-  // }
-
-// 	int level = readSensor();
-	
-// 	Serial.print("Water level: ");
-// 	Serial.println(level);
-
-// float humi  = dht.readHumidity();
-//   // read temperature as Celsius
-//   float tempC = dht.readTemperature();
-//   // read temperature as Fahrenheit
-//   float tempF = dht.readTemperature(true);
-
-//   // check if any reads failed
-//   if (isnan(humi) || isnan(tempC) || isnan(tempF)) {
-//     Serial.println("Failed to read from DHT sensor!");
-//   } else {
-//     Serial.print("Humidity: ");
-//     Serial.print(humi);
-//     Serial.print("%");
-
-//     Serial.print("  |  "); 
-
-//     Serial.print("Temperature: ");
-//     Serial.print(tempC);
-//     Serial.print("°C ~ ");
-//     Serial.print(tempF);
-//     Serial.println("°F");
-//   }
-
-  // set the cursor to column 0, line 1
-  // (note: line 1 is the second row, since counting begins with 0):
-
-  // print the number of seconds since reset:
-  // lcd.print(millis() / 1000);
-
+  delay(1000);
+  lcd.clear();
 }
-/////////////////////////
-
-
-
-
-int readSensor() {
-	digitalWrite(sensorPower, HIGH);	// Turn the sensor ON
-	delay(10);							// wait 10 milliseconds
-	level = analogRead(sensorPin);		// Read the analog value form sensor
-	digitalWrite(sensorPower, LOW);		// Turn the sensor OFF
-	return level;							// send current reading
-}
-
 
 void adc_init()
 {
@@ -543,69 +250,3 @@ unsigned int adc_read(unsigned char adc_channel_num)
   // return the result in the ADC data register
   return *my_ADC_DATA;
 }
-
-// Stepper Motor:
-// 24, 26, 28, 32
-// DC Motor:
-// 13
-// Button:
-// 3,4,5
-// LEDS:
-// 6yellow,7blue,8green,9red
-// TEMP:
-// 10
-// Water Sensor:
-// 11
-
-
-
-
-// if (temp < threshold){
-//   display temp and hum
-//   fan off
-//   green led on
-// }
-
-// else if (temp > threshold){
-//  display temp and hum
-//  fan motor on
-//  blue led on
-// }
-
-
-// else if (water < thres){
-//   red light on
-//   error message "water level is too low"
-// }
-
-// else if (water <= thres){
-//   red light on
-//   error message "water level is too low"
-// }
-
-// else if (reset == true){
-//   display temp and hum
-//   fan off
-//   green led on
-// }
-
-// else if (stop == true){
-//  Yellow light on
-// }
-// else if (start == true){
-//   display temp and hum
-//   fan off
-//   green led on
-// }
-// else{
-
-// }
-
-  // pinMode(9, OUTPUT);
-  // digitalWrite(9, HIGH);
-  // pinMode(8, OUTPUT);
-  // digitalWrite(8, HIGH);
-  // pinMode(7, OUTPUT);
-  // digitalWrite(7, HIGH);
-  // pinMode(6, OUTPUT);
-  // digitalWrite(6, HIGH);
