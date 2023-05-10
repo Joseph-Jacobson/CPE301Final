@@ -1,27 +1,32 @@
-#include <LiquidCrystal.h>
-
 #include <DHT.h>
 #include <DHT_U.h>
+
+#include <LiquidCrystal.h>
+
+
 #include <Adafruit_LiquidCrystal.h>
 
 #include <Stepper.h>
 #define DHTPIN 10
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
+
+
 #define sensorPower 2
 #define sensorPin 11
 int t = 1;
-const float threshold = 80;
-int state = 0;
+const float waterthreshold = 100;
+const float tempthreshold = 25;
+int state = 1;
 // const int LED_PIN_1 = 9;
 // const int LED_PIN_2 = 8; //GREEN
 // const int LED_PIN_3 = 7;
 // const int LED_PIN_4 = 6;
-int val = 0;
+int level = 0;
 // Define button pins
-// const int BUTTON_PIN_1 = 5; //start
-// const int BUTTON_PIN_2 = 4; //stop
-// const int BUTTON_PIN_3 = 3; //reset
+//const int BUTTON_PIN_1 = 5; //start
+//const int BUTTON_PIN_2 = 4; //stop
+//const int BUTTON_PIN_3 = 3; //reset
 int motorPin = 13;
 const int stepsPerRevolution = 2048;  // change this to fit the number of steps per revolution
 const int rolePerMinute = 17;         // Adjustable range of 28BYJ-48 stepper is 0~17 rpm
@@ -46,9 +51,9 @@ volatile unsigned char* ddr_e = (unsigned char*) 0x2d;
 volatile unsigned char* pin_e = (unsigned char*) 0x2c;
 
 
-volatile unsigned char* port_g= (unsigned char*) 0x14; 
-volatile unsigned char* ddr_g = (unsigned char*) 0x13;
-volatile unsigned char* pin_g = (unsigned char*) 0x12;
+volatile unsigned char* port_g= (unsigned char*) 0x34; 
+volatile unsigned char* ddr_g = (unsigned char*) 0x33;
+volatile unsigned char* pin_g = (unsigned char*) 0x32;
 
 //motor
 volatile unsigned char* port_b= (unsigned char*) 0x25; 
@@ -74,21 +79,39 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
+// int buttonState1 = 0;
+// int buttonState2 = 0;
+// int buttonState3 = 0;
+
 void setup() {
 
 adc_init();
+*ddr_b &= ~(0x01<<6);
+*port_b |= (0x01<<6);
+
 
 *ddr_h |= (0x01<<3);
 *ddr_h |= (0x01<<4);
 *ddr_h |= (0x01<<5);
 *ddr_h |= (0x01<<6);
-*ddr_g |= (0x01<<5);
-*ddr_g &= ~(0x01<<5);
+*ddr_f |= (0x01<<0);
+*ddr_f |= (0x01<<1);
+*ddr_f |= (0x01<<2);
+*ddr_f |= (0x01<<4);
+*ddr_k |= (0x01<<5);
+*ddr_k |= (0x01<<6);
+*ddr_k &= ~(0x01<<7);
+*port_k |= (0x01<<7);
 *ddr_e |= (0x01<<3);
 *ddr_e &= ~(0x01<<3);
+*ddr_g |= (0x01<<5);
+*ddr_g &= ~(0x01<<5);
 *ddr_e |= (0x01<<5);
 *ddr_e &= ~(0x01<<5);
+*ddr_e |= (0x01<<4);
 *ddr_b |= (0x01<<7);
+*ddr_b |= (0x01<<5);
+*ddr_b &= ~(0x01<<5);
 *ddr_c |= (0x01<<7);
 *ddr_c |= (0x01<<5);
 *ddr_a |= (0x01<<4);
@@ -116,17 +139,13 @@ adc_init();
 
   //   pinMode(motorPin, OUTPUT);
   Serial.begin(9600);
-  while (! Serial);
-  Serial.println("Speed 0 to 255");
 
-    myStepper.setSpeed(rolePerMinute);
-      dht.begin(); // initialize the sensor
+  myStepper.setSpeed(rolePerMinute);
+  dht.begin(); // initialize the sensor
   // initialize the serial port:
-  	pinMode(sensorPower, OUTPUT);
 	
 	// Set to LOW so no power flows through the sensor
 	// digitalWrite(sensorPower, LOW);
-  Serial.begin(9600);
 
   // pinMode(A14,OUTPUT);
   // pinMode(A13,OUTPUT);
@@ -143,119 +162,255 @@ adc_init();
   lcd.begin(16, 2);
  // Print a message to the LCD.
   //lcd.print("joe mama");
-
+  
+  // pinMode(BUTTON_PIN_1, INPUT);
+  // pinMode(BUTTON_PIN_2, INPUT);
+  // pinMode(BUTTON_PIN_3, INPUT);
+  
 }
 
 
 void loop() {
-  *port_e &= ~(0x01<<3);
 
-  *port_h &= ~(0x01<<6);
+float temp = dht.readTemperature();
+float humi = dht.readHumidity();
+level = adc_read(11);
 
+
+
+if(*pin_e & (0x01<<3)){
+ state=2;
+}
+
+if(*pin_e & (0x01<<5)){
+state=1;
+}
+
+*port_e |= (0x01<<4);
+
+
+
+
+if(state == 1){
+  *port_b &= ~(0x01<<7);
+ *port_h |= (0x01<<3);
+   *port_h &= ~(0x01<<6);
   *port_h &= ~(0x01<<5);
-
   *port_h &= ~(0x01<<4);
 
+}
+
+if(state == 2){
+  *port_b &= ~(0x01<<7);
+   *port_h |= (0x01<<5);
+  float temp = dht.readTemperature();
+ float humi = dht.readHumidity();
+  lcd.println(temp);
+  lcd.println(humi);
+  *port_h &= ~(0x01<<6);
+  *port_h &= ~(0x01<<4);
+  *port_h &= ~(0x01<<3);
+  if(level < waterthreshold){
+ state = 4;
+}
+if(temp > tempthreshold){
+ state = 3;
+}
+}
+
+if(state == 3){
+  *port_b |= (0x01<<7);
+  *port_h |= (0x01<<4);
+  float temp = dht.readTemperature();
+ float humi = dht.readHumidity();
+ lcd.print("Tempurature:");
+  lcd.print(temp);
+  lcd.print("Humidity:");
+  lcd.print(humi);
+    *port_h &= ~(0x01<<6);
+  *port_h &= ~(0x01<<5);
+  *port_h &= ~(0x01<<3);
+if(temp <= tempthreshold){
+ state = 2;  
+}
+
+if(level <= waterthreshold){
+  state = 4;
+}
+}
+
+if (state == 4){
+  *port_b &= ~(0x01<<7);
+  lcd.println("Water level is too low");
+  *port_h |= (0x01<<6);
+
+    *port_h &= ~(0x01<<5);
+  *port_h &= ~(0x01<<4);
   *port_h &= ~(0x01<<3);
 
+  if(*pin_g & (0x01<<5)){
+state=2;
+}
+}
+Serial.print("Level:");
+Serial.println(level);
+Serial.print("Temp:");
+Serial.println(temp);
+Serial.print("Humi:");
+Serial.println(humi);
+Serial.println(state);
+//   *port_h &= ~(0x01<<6);
+//   *port_h &= ~(0x01<<5);
+//   *port_h &= ~(0x01<<4);
+//   *port_h &= ~(0x01<<3);
+//   *port_b &= ~(0x01<<7);
 
-  // Read button states
-  if(state==0)
-  {
-    *port_e |= (0x01<<3);
-    if(*pin_g & (0x01 <<5))
-    {
-      state=1;
-      delay(500);
-    }
-  }
-  else if(state==1)
-  {
-    *port_h |= (0x01<<5);
-  }
-  else if(state==2)
-  {
-    *port_h |= (0x01<<4);
-  }
-  else if(state==4)
-  {
-    *port_h |= (0x01<<5);
-    lcd.clear();
-    lcd.print("Water lvl Low!");
-    if(*pin_g & (0x01 <<5))
-    {
-      state=0;
-      delay(500);
-    }
-    if(*pin_e & (0x01 <<5))
-    {
-      state=1;
-      delay(500);
-    }    
-  }
-  if(state==1 || state==2)
-  {
-    //value = adc_read(11);
-    lcd.clear();
-	  int level = readSensor();
+ //int readData = DHT.read11(outPin);
+
+// Serial.println(temp);
+// Serial.println(humi);
+  // *port_e &= ~(0x01<<3);
+
+
+if(*pin_b & (0x01<<6)){
+  myStepper.step(stepsPerRevolution*t);
+  t *= -1;
+}
+
+delay(1000);
+lcd.clear();
+
+// if(*pin_e & (0x01<<3)){ 
+//   *port_h |= (0x01<<6);
+//   *port_h |= (0x01<<5);
+// }else if(*pin_g & (0x01<<5)){
+//   *port_h |= (0x01<<4);
+//   *port_b |= (0x01<<7);
+// }else if(*pin_e & (0x01<<5)){
+//   *port_h |= (0x01<<3);
+// }else{
+//   *port_h &= ~(0x01<<6);
+//   *port_h &= ~(0x01<<5);
+//   *port_h &= ~(0x01<<4);
+//   *port_h &= ~(0x01<<3);
+//   *port_b &= ~(0x01<<7);
+// }
+
+
+  // // Read button states
+  // if(state==0)
+  // {
+  //   *port_e |= (0x01<<3);
+  //   if(*pin_g & (0x01 <<5))
+  //   {
+  //     state=1;
+  //     delay(500);
+  //   }
+  // }
+  // else if(state==1)
+  // {
+  //   *port_h |= (0x01<<5);
+  // }
+  // else if(state==2)
+  // {
+  //   *port_h |= (0x01<<4);
+  // }
+  // else if(state==4)
+  // {
+  //   *port_h |= (0x01<<5);
+  //   lcd.clear();
+  //   lcd.print("Water lvl Low!");
+  //   if(*pin_g & (0x01 <<5))
+  //   {
+  //     state=0;
+  //     delay(500);
+  //   }
+  //   if(*pin_e & (0x01 <<5))
+  //   {
+  //     state=1;
+  //     delay(500);
+  //   }    
+  // }
+  // if(state==1 || state==2)
+  // {
+  //   //value = adc_read(11);
+  //   lcd.clear();
+	//   int level = readSensor();
 	
-	  lcd.print("Water level: ");
-	  lcd.println(level);
+	//   lcd.print("Water level: ");
+	//   lcd.println(level);
 
-  float humi  = dht.readHumidity();
-  // read temperature as Celsius
-  float tempC = dht.readTemperature();
-  // read temperature as Fahrenheit
-  float tempF = dht.readTemperature(true);
+  // float humi  = dht.readHumidity();
+  // // read temperature as Celsius
+  // float tempC = dht.readTemperature();
+  // // read temperature as Fahrenheit
+  // float tempF = dht.readTemperature(true);
 
-  // check if any reads failed
-  if (isnan(humi) || isnan(tempC) || isnan(tempF)) {
-    lcd.println("Failed to read from DHT sensor!");
-  } else {
-    lcd.print("Humidity: ");
-    lcd.print(humi);
-    lcd.print("%");
+  // // check if any reads failed
+  // if (isnan(humi) || isnan(tempC) || isnan(tempF)) {
+  //   lcd.println("Failed to read from DHT sensor!");
+  // } else {
+  //   lcd.print("Humidity: ");
+  //   lcd.print(humi);
+  //   lcd.print("%");
 
-    lcd.print("  |  "); 
-    lcd.setCursor(0, 1);
-    lcd.print("Temperature: ");
-    lcd.print(tempC);
-    lcd.print("°C ~ ");
-    lcd.print(tempF);
-    lcd.println("°F");
-  }
-      delay(250);
+  //   lcd.print("  |  "); 
+  //   lcd.setCursor(0, 1);
+  //   lcd.print("Temperature: ");
+  //   lcd.print(tempC);
+  //   lcd.print("°C ~ ");
+  //   lcd.print(tempF);
+  //   lcd.println("°F");
+  // }
+  //     delay(250);
 
-    if(humi>15.00)
-    {
-      state=2;
-    }
-    else
-    {
-      state=1;
-    }
-    if(*pin_g & (0x01 <<5))
-    {
-      state=0;
-      delay(500);
-    }
+  //   if(humi>15.00)
+  //   {
+  //     state=2;
+  //   }
+  //   else
+  //   {
+  //     state=1;
+  //   }
+  //   if(*pin_g & (0x01 <<5))
+  //   {
+  //     state=0;
+  //     delay(500);
+  //   }
 
-    // if(value>120)
-    // {
-    //   state=4;
-    //   delay(500);
-    // }
+  //   // if(value>120)
+  //   // {
+  //   //   state=4;
+  //   //   delay(500);
+  //   // }
 
-    if(*pin_e & (0x01 <<4))
-    {
-      myStepper.step(stepsPerRevolution*t);
-      t*=-1;
-      delay(500);
-    }
+  //   if(*pin_e & (0x01 <<4))
+  //   {
+  //     myStepper.step(stepsPerRevolution*t);
+  //     t*=-1;
+  //     delay(500);
+  //   }
 
-  }
+  // }
 
 
+  // pinMode(9, OUTPUT);
+  // digitalWrite(9, HIGH);
+  // pinMode(8, OUTPUT);
+  // digitalWrite(8, HIGH);
+  // pinMode(7, OUTPUT);
+  // digitalWrite(7, HIGH);
+  // pinMode(6, OUTPUT);
+  // digitalWrite(6, HIGH);
+
+// buttonState1 = digitalRead(BUTTON_PIN_1);
+// buttonState2 = digitalRead(BUTTON_PIN_2);
+// buttonState3 = digitalRead(BUTTON_PIN_3);
+
+// *port_h |= (0x01<<6);
+// *port_h |= (0x01<<5);
+// *port_h |= (0x01<<4);
+// *port_h |= (0x01<<3);
 
 
 
@@ -342,9 +497,9 @@ void loop() {
 int readSensor() {
 	digitalWrite(sensorPower, HIGH);	// Turn the sensor ON
 	delay(10);							// wait 10 milliseconds
-	val = analogRead(sensorPin);		// Read the analog value form sensor
+	level = analogRead(sensorPin);		// Read the analog value form sensor
 	digitalWrite(sensorPower, LOW);		// Turn the sensor OFF
-	return val;							// send current reading
+	return level;							// send current reading
 }
 
 
@@ -445,3 +600,12 @@ unsigned int adc_read(unsigned char adc_channel_num)
 // else{
 
 // }
+
+  // pinMode(9, OUTPUT);
+  // digitalWrite(9, HIGH);
+  // pinMode(8, OUTPUT);
+  // digitalWrite(8, HIGH);
+  // pinMode(7, OUTPUT);
+  // digitalWrite(7, HIGH);
+  // pinMode(6, OUTPUT);
+  // digitalWrite(6, HIGH);
